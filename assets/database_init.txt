@@ -1,0 +1,10 @@
+==== init ====
+create table book (
+    id text primary key,
+    name text,
+    description text,
+    url text,
+    chapter_number int,
+    paragraph_number int
+)
+----
