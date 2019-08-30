@@ -29,67 +29,16 @@ class _LibraryPageState extends State<LibraryPage> {
 
   @override
   Widget build(BuildContext context) {
-    (() async {
-
-      var bundle = rootBundle ?? NetworkAssetBundle(Uri.directory(Uri.base.origin));
-      var result = await bundle.loadString(DBHelper.init_key);
-      var lines = result.split(RegExp(r"\n"));
-      var cmdreg = RegExp(r"==== .+ ====");
-      var cmds = Map<String, List<String>>();
-      var cmd = "", sqls = <String>[], sqlbuf = StringBuffer();
-      var begin = false;
-      for(var line in lines) {
-        // if (cmdreg.hasMatch(line)) {
-        //   if (sqlbuf.isNotEmpty) {
-        //     sqls.add(sqlbuf.toString());
-        //   }
-        //   if (cmd?.isNotEmpty == true) {
-        //     cmds[cmd] = sqls ?? <String>[];
-        //   }
-        //   cmd = line.substring(5, line.length - 6);
-        //   sqls = <String>[];
-        //   sqlbuf.clear();
-        //   begin = false;
-        //   continue;
-        // }
-        // print("line=$line${line.toLowerCase()}");
-        StringBuffer bf = StringBuffer();
-        bf.write(line);
-        var text = bf.toString();
-        print("line=$line $text");
-        // if (line == "----") {
-        //   if (sqlbuf?.isNotEmpty == true) {
-        //     sqls.add(sqlbuf.toString());
-        //   }
-        //   sqlbuf.clear();
-        //   begin = false;
-        //   continue;
-        // }
-        // if (line?.isNotEmpty == true) {
-        //   if (begin) {
-        //     sqlbuf.write("\r\n");
-        //   } else {
-        //     begin = true;
-        //   }
-        //   sqlbuf.write(line);
-        // }
-      }
-      if (sqlbuf?.isNotEmpty == true) {
-        sqls.add(sqlbuf.toString());
-      }
-      cmds[cmd] = sqls;
-      cmds.forEach((cmd, sqls) {
-        print("command: $cmd");
-        for (var i = 0; i < sqls.length; ++i) {
-          print("${i + 1}: ${sqls[i]}");
-        }
-      });
-    })();
-
     return Scaffold(
       appBar: AppBar(
         title: Text("书架"),
         centerTitle: true,
+        actions: <Widget> [
+          IconButton(
+            icon: Icon(Icons.add),
+            onPressed: () => toPage(context, ARouterConfig.add_book)
+          )
+        ]
       ),
       body: Container(
         child: ListView.builder(

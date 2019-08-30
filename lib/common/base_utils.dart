@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:annotation_route/route.dart';
+import 'package:uuid/uuid.dart';
 import 'package:text_reader/common.dart';
 
 List<String> _unit1 = const ["", "十", "百", "千"];
@@ -73,3 +74,6 @@ Future<T> toPage<T>(
     builder: (context) => ARouter.findPage(option, params)
   ));
 }
+
+/// 生成UUID
+String uuid() => Uuid().v1().replaceAll("-", "");

@@ -1,7 +1,7 @@
 import 'package:annotation_route/route.dart';
 import 'package:flutter/material.dart';
 
-import 'package:text_reader/common.dart';
+import 'arouter.internal.dart';
 
 @ARouteRoot()
 class ARouter {

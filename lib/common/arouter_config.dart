@@ -6,4 +6,7 @@ class ARouterConfig {
 
   /// 阅读页面
   static const String read = "/read";
+
+  /// 添加书籍
+  static const String add_book = "/addBook";
 }

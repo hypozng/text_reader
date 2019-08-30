@@ -6,18 +6,22 @@
 
 import 'dart:convert';
 import 'package:annotation_route/route.dart';
-import 'package:text_reader/page/read_page.dart';
+import 'package:text_reader/page/add_book_page.dart';
 import 'package:text_reader/page/library_page.dart';
+import 'package:text_reader/page/read_page.dart';
 
 class ARouterInternalImpl extends ARouterInternal {
   ARouterInternalImpl();
   final Map<String, List<Map<String, dynamic>>> innerRouterMap =
       <String, List<Map<String, dynamic>>>{
-    '/read': [
-      {'clazz': ReadPage}
+    '/addBook': [
+      {'clazz': AddBookPage}
     ],
     '/library': [
       {'clazz': LibraryPage}
+    ],
+    '/read': [
+      {'clazz': ReadPage}
     ]
   };
 
@@ -42,10 +46,12 @@ class ARouterInternalImpl extends ARouterInternal {
 
   dynamic instanceFromClazz(Type clazz, dynamic option) {
     switch (clazz) {
-      case ReadPage:
-        return new ReadPage(option);
+      case AddBookPage:
+        return new AddBookPage(option);
       case LibraryPage:
         return new LibraryPage(option);
+      case ReadPage:
+        return new ReadPage(option);
       default:
         return null;
     }
