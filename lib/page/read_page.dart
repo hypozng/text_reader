@@ -39,12 +39,6 @@ class _ReadPageState extends State<ReadPage> {
   int playIndex = 1;
 
   @override
-  void initState() {
-    super.initState();
-    _initDB();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -94,30 +88,14 @@ class _ReadPageState extends State<ReadPage> {
     );
   }
 
-  void _initDB() async {
-    // await db.execute("create table book(id text primary key, name text, description text)");
-    // await db.close();
-    // print("dir.exists(): ${await file.exists()}");
-
-  }
-
   void _play() {
     FlutterTts flutterTts = FlutterTts();
     flutterTts.setCompletionHandler(() {
       print("end");
     });
     flutterTts.setSpeechRate(2);
-    flutterTts.setVoice("mfe");
     flutterTts.setPitch(1);
     flutterTts.speak(chapter.paragraphs[playIndex]);
-    // if (chapter.paragraphs.isEmpty) {
-    //   return;
-    // }
-    // setState(() => null);
-    // var paragraph = chapter.paragraphs[playIndex];
-    // TtsHelper.instance.setLanguageAndSpeak(paragraph, "zh");
-    // TtsHelper.instance.setLanguageAndSpeak("第一百二十三章 深刻的教训", "en");
-
   }
 
   void _load() async {
