@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:annotation_route/route.dart';
+import 'package:dio/dio.dart';
 import 'package:uuid/uuid.dart';
 import 'package:text_reader/common.dart';
 
@@ -67,7 +68,7 @@ Future<T> toPage<T>(
   BuildContext context,
   String url, {
     Map<String, dynamic> routerParams,
-    Map<String, dynamic> params,
+    Map<String, dynamic> params
   }) {
   var option = ARouteOption(url, routerParams);
   return Navigator.push<T>(context, MaterialPageRoute<T>(
@@ -75,5 +76,21 @@ Future<T> toPage<T>(
   ));
 }
 
+/// 打开新页面，替换当前页面
+Future<T> replacePage<T extends Object, TO extends Object>(
+  BuildContext context,
+  String url, {
+    Map<String, dynamic> routerParams,
+    Map<String, dynamic> params
+  }
+) {
+  var option = ARouteOption(url, routerParams);
+  return Navigator.pushReplacement<T, TO>(context, MaterialPageRoute<T>(
+    builder: (context) => ARouter.findPage(option, params)
+  ));
+}
+
 /// 生成UUID
 String uuid() => Uuid().v1().replaceAll("-", "");
+
+Dio dio = Dio();

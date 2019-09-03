@@ -1,6 +1,9 @@
 /// 路由配置
 class ARouterConfig {
 
+  /// 启动屏幕
+  static const String splash_screen = "/splash_screen";
+
   /// 书架页面
   static const String library = "/library";
 

@@ -1,12 +1,11 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
-import 'package:flutter_tts/flutter_tts.dart';
 import 'package:annotation_route/route.dart';
 
 import 'package:text_reader/common.dart';
 import 'package:text_reader/model.dart';
 import 'package:text_reader/page.dart';
+import 'package:text_reader/widgets.dart';
 
 /// 阅读页面
 @ARoute(url: ARouterConfig.read)
@@ -20,7 +19,6 @@ class ReadPage extends BasicPage {
 }
 
 class _ReadPageState extends State<ReadPage> {
-  var _dio = Dio();
 
   var _pattern = '<div id="content">';
 
@@ -34,85 +32,99 @@ class _ReadPageState extends State<ReadPage> {
     RegExp(r"[xX]"): "叉",
   };
 
+  Book get book => widget?.params["book"];
+
   var chapter = Chapter();
 
-  int playIndex = 1;
+  int playIndex = 0;
+
+  bool playing = false;
+
+  ScrollController controller = ScrollController();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("电子书")
+        title: Text(widget.params["book"]?.name ?? "电子书")
       ),
       body: Container(
-        child: Column(
-          children: <Widget> [
-            Row(
-              children: <Widget> [
-                IconButton(
-                  icon: Icon(Icons.refresh),
-                  onPressed: _load
-                ),
-                IconButton(
-                  icon: Icon(Icons.play_circle_outline),
-                  onPressed: _play
-                )
-              ]
-            ),
-            Expanded(
-              child: ListView.builder(
-                itemCount: chapter.paragraphs.length,
-                itemBuilder: (content, index) {
-                  var paragraph = chapter.paragraphs[index];
-                  return Container(
-                    color: playIndex == index ? Colors.amber : null,
-                    child: ListTile(
-                      title: Text(
-                        paragraph,
-                        style: TextStyle(
-                          fontSize: 18,
-                        )
-                      ),
-                      onTap: () {
-                        playIndex = index;
-                        _play();
-                      },
-                    )
-                  );
-                }
-              )
-            )            
-          ]
+        child: MyListView<String>(
+          data: chapter?.paragraphs,
+          itemBuilder: _renderItem,
+          onRefresh: _refresh,
+          controller: controller
         )
+      ),
+      floatingActionButton: FloatingActionButton(
+        child: Icon(playing ? Icons.stop : Icons.play_arrow),
+        backgroundColor: Colors.black12,
+        onPressed: () {
+          if (playing) {
+            _stop();
+          } else {
+            --playIndex;
+            _play();
+          }
+        }
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _stop();
+    super.dispose();
+  }
+
+  Widget _renderItem(BuildContext context, int index, String paragraph) {
+    return Container(
+      color: playIndex == index ? Colors.amber : null,
+      child: ListTile(
+        title: Text(
+          paragraph,
+          style: TextStyle(
+            fontSize: 18,
+          )
+        ),
+        onTap: () {
+          playIndex = index - 1;
+          _play();
+        },
       )
     );
   }
 
+  /// 开始播放语音
   void _play() {
-    FlutterTts flutterTts = FlutterTts();
-    flutterTts.setCompletionHandler(() {
-      print("end");
+    playing = true;
+    ++playIndex;
+    if (playIndex >= chapter.paragraphs.length) {
+      _stop();
+      return;
+    }
+    // controller.jumpTo(controller.);
+    setState(() {});
+    // controller.attach(ScrollPosition())
+    // print(controller.position);
+    // controller.position.moveTo(playIndex.toDouble());
+    var paragraph = chapter.paragraphs[playIndex];
+    TtsHelper.speak(paragraph).then((_) {
+      if (playing) {
+        _play();
+      }
     });
-    flutterTts.setSpeechRate(2);
-    flutterTts.setPitch(1);
-    flutterTts.speak(chapter.paragraphs[playIndex]);
   }
 
-  void _load() async {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return Container(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget> [
-              CircularProgressIndicator()
-            ]
-          )
-        );
-      }
-    );
-    var result = await _dio.get("http://www.biquge.tw/0_671/363983.html");
+  /// 停止播放语音
+  void _stop() {
+    setState(() => playing = false);
+    TtsHelper.stop();
+  }
+
+  /// 加载小说资源
+  Future<void> _refresh() async {
+    var result = await dio.get(book.url);
     String html = result.data;
     var start = html.indexOf(_pattern);
     if (start != null) {
@@ -130,6 +142,5 @@ class _ReadPageState extends State<ReadPage> {
     List<String> list = text.split("<br/>");
     list.removeWhere((s) => s == null || s.trim().isEmpty);
     setState(() => chapter.paragraphs = list);
-    Navigator.pop(context);
   }
 }

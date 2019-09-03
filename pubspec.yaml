@@ -38,6 +38,8 @@ dependencies:
   # path: ^1.6.4
   # json 实体
   json_annotation: ^3.0.0
+  # 下拉刷新
+  flutter_easyrefresh: ^1.2.5
 
 dev_dependencies:
   flutter_test:

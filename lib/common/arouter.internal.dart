@@ -9,6 +9,7 @@ import 'package:annotation_route/route.dart';
 import 'package:text_reader/page/add_book_page.dart';
 import 'package:text_reader/page/library_page.dart';
 import 'package:text_reader/page/read_page.dart';
+import 'package:text_reader/page/splash_screen.dart';
 
 class ARouterInternalImpl extends ARouterInternal {
   ARouterInternalImpl();
@@ -22,6 +23,9 @@ class ARouterInternalImpl extends ARouterInternal {
     ],
     '/read': [
       {'clazz': ReadPage}
+    ],
+    '/splash_screen': [
+      {'clazz': SplashScreen}
     ]
   };
 
@@ -52,6 +56,8 @@ class ARouterInternalImpl extends ARouterInternal {
         return new LibraryPage(option);
       case ReadPage:
         return new ReadPage(option);
+      case SplashScreen:
+        return new SplashScreen(option);
       default:
         return null;
     }

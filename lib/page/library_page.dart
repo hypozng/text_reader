@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:annotation_route/route.dart';
-import 'dart:io';
 
 import 'package:text_reader/model.dart';
 import 'package:text_reader/page.dart';
 import 'package:text_reader/common.dart';
+import 'package:text_reader/widgets.dart';
 
 @ARoute(url: ARouterConfig.library)
 class LibraryPage extends BasicPage {
@@ -18,14 +17,7 @@ class LibraryPage extends BasicPage {
 
 class _LibraryPageState extends State<LibraryPage> {
 
-  List<Book> books = [
-    Book(name: "校花的贴身高手"),
-    Book(name: "最佳女婿"),
-    Book(name: "很纯很暧昧"),
-    Book(name: "重生追美记"),
-    Book(name: "天降巨幅"),
-    Book(name: "麻衣神算子"),
-  ];
+  List<Book> books;
 
   @override
   Widget build(BuildContext context) {
@@ -41,16 +33,16 @@ class _LibraryPageState extends State<LibraryPage> {
         ]
       ),
       body: Container(
-        child: ListView.builder(
-          itemCount: books.length,
-          itemBuilder: _renderItem
+        child: MyListView(
+          data: books,
+          itemBuilder: _renderItem,
+          onRefresh: _refresh
         )
       )
     );
   }
 
-  Widget _renderItem(BuildContext context, int index){
-    var book = books[index];
+  Widget _renderItem(BuildContext context, int index, Book book){
     return ListTile(
       title: Text(book.name),
       subtitle: book.description == null ? null : Text(book.description),
@@ -61,8 +53,20 @@ class _LibraryPageState extends State<LibraryPage> {
   }
 
   /// 加载本地收藏的图书列表
-  void _loadBooks() {
-    // AssetBundle bundle;
-    // AssetBundle();
+  Future<void> _refresh() {
+    return Future.microtask(() {
+      books = [
+        Book(
+          name: "校花的贴身高手",
+          url: "https://www.biquge.tw/0_671/4356290.html"
+        ),
+        Book(name: "最佳女婿"),
+        Book(name: "很纯很暧昧"),
+        Book(name: "重生追美记"),
+        Book(name: "天降巨幅"),
+        Book(name: "麻衣神算子"),
+      ];
+      setState(() {});
+    });
   }
 }
