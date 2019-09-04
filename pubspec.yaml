@@ -24,7 +24,6 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^0.1.2
   # 语音播报
-  tts: ^1.0.2
   flutter_tts: ^0.5.2
   # 网络请求
   dio: ^2.1.13

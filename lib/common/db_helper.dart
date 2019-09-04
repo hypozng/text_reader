@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:sqflite/sqflite.dart' as sqflite;
+import 'package:text_reader/model.dart';
 
 class DBHelper {
   /// 数据库文件名
@@ -11,6 +12,10 @@ class DBHelper {
 
   /// 数据库版本
   static const int version = 1;
+
+  static const _types = const<Type, String> {
+    Book: "book"
+  };
 
   static String _databasesPath;
 
@@ -72,6 +77,42 @@ class DBHelper {
     var result = await db.rawUpdate(sql, arguments);
     print("==> result: $result");
     return result;
+  }
+
+  static Future<bool> save(dynamic model) async {
+    if (model == null) {
+      return false;
+    }
+    Type type = model.runtimeType;
+    String table = _types[type];
+    if (table == null) {
+      return false;
+    }
+    Map<String, dynamic> json = model.toJson();
+    String id = json["id"];
+    var sql = StringBuffer();
+    var begin = false;
+    var result = await rawQuery("select count(1) as count from $table where id=?", [id]);
+    if (result[0]["count"] == 0) {
+      sql.write("insert into $table(");
+      var values = StringBuffer();
+      var arguments = List<dynamic>();
+      begin = false;
+      json.forEach((key, value) {
+        if (begin) {
+          values.write(",");
+          sql.write(",");
+        } else {
+          begin = true;
+        }
+        values.write("?");
+        sql.write("$key");
+        arguments.add(value);
+      });
+      sql.write(") values(${values.toString()})");
+      return await rawUpdate(sql.toString(), arguments) > 0;
+    }
+    /// TODO 新增sql生成部分待完成
   }
 
   /// 打开数据库

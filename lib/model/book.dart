@@ -1,4 +1,5 @@
 import 'package:json_annotation/json_annotation.dart';
+import 'package:text_reader/model.dart';
 
 part 'book.g.dart';
 
@@ -28,13 +29,17 @@ class Book {
   @JsonKey(name: 'url')
   String url;
 
+  @JsonKey(name: 'chapters')
+  List<Chapter> chapters;
+
   Book({
     this.id,
     this.name,
     this.description,
     this.chapterNumber,
     this.paragraphNumber,
-    this.url
+    this.url,
+    this.chapters
   });
 
   factory Book.fromJson(Map<String, dynamic> json) => _$BookFromJson(json);
