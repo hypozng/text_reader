@@ -4,6 +4,13 @@ part 'chapter.g.dart';
 
 @JsonSerializable()
 class Chapter {
+  @JsonKey(name: 'id')
+  String id;
+
+  /// 图书ID
+  @JsonKey(name: 'book_id')
+  String bookId;
+
   /// 章节号
   @JsonKey(name: 'number')
   int number;

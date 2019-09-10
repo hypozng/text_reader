@@ -37,6 +37,10 @@ class _SplashScreenState extends State<SplashScreen> {
   Future _init() async {
     setState(() => message = "正在加载语音播放插件");
     await TtsHelper.init();
+    print("语音插件加载完成");
+    setState(() => message = "正在初始化数据库");
+    await DBHelper.database;
+    print("数据库初始化完成");
   }
 }
 

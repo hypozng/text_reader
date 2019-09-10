@@ -29,7 +29,7 @@ class Book {
   @JsonKey(name: 'url')
   String url;
 
-  @JsonKey(name: 'chapters')
+  @JsonKey(ignore: true)
   List<Chapter> chapters;
 
   Book({

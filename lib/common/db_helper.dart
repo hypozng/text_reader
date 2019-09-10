@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:sqflite/sqflite.dart' as sqflite;
 import 'package:text_reader/model.dart';
+import 'package:text_reader/common.dart';
 
 class DBHelper {
   /// 数据库文件名
@@ -11,15 +12,16 @@ class DBHelper {
   static const String init_key= "assets/database_init.txt";
 
   /// 数据库版本
-  static const int version = 1;
-
-  static const _types = const<Type, String> {
-    Book: "book"
-  };
+  static const int version = 2;
 
   static String _databasesPath;
 
   static sqflite.Database _database;
+
+  static const _types = const<Type, String> {
+    Book: "book",
+    Chapter: "chapter"
+  };
 
   /// 获取数据库存储路径
   static Future<String> get databasesPath async {
@@ -29,6 +31,8 @@ class DBHelper {
   static Future<sqflite.Database> get database async {
     return _database ??= await _open();
   }
+
+  static Future<void> init() async => await database;
 
   /// 执行sql语句
   static Future<void> execute(String sql, [List<dynamic> arguments]) async {
@@ -79,26 +83,55 @@ class DBHelper {
     return result;
   }
 
+  static Future<T> findTable<T>(
+    dynamic model,
+    T defaultResult,
+    Future<T> callback(String table, String id, Map<String, dynamic> data)
+  ) async {
+    if (model == null || callback == null) {
+      return defaultResult;
+    }
+    try {
+      String table = _types[model.runtimeType];
+      if (table == null) {
+        return defaultResult;
+      }
+      Map<String, dynamic> data = model.toJson();
+      return await callback(table, data["id"], data);
+    } catch(e) {
+      print(e);
+      return defaultResult;
+    }
+  }
+
+  /// 判断数据库中是否存在指定实体数据
+  static Future<bool> contains(dynamic model) async {
+    return await findTable(model, false, (table, id, data) async {
+      if (id?.isNotEmpty != true) {
+        return false;
+      }
+      var result = await rawQuery("SELECT COUNT(1) AS count FROM $table WHERE id=?", [id]);
+      return result[0]["count"] > 0;
+    });
+  }
+
+  /// 保存数据
   static Future<bool> save(dynamic model) async {
-    if (model == null) {
-      return false;
+    if (model?.id?.isNotEmpty == true) {
+      return await update(model);
     }
-    Type type = model.runtimeType;
-    String table = _types[type];
-    if (table == null) {
-      return false;
-    }
-    Map<String, dynamic> json = model.toJson();
-    String id = json["id"];
-    var sql = StringBuffer();
-    var begin = false;
-    var result = await rawQuery("select count(1) as count from $table where id=?", [id]);
-    if (result[0]["count"] == 0) {
-      sql.write("insert into $table(");
+    return await insert(model);
+  }
+
+  /// 新增数据
+  static Future<bool> insert(dynamic model) async {
+    model.id = uuid();
+    return await findTable(model, false, (table, id, data) async {
+      var sql = StringBuffer("INSERT INTO $table(");
       var values = StringBuffer();
       var arguments = List<dynamic>();
-      begin = false;
-      json.forEach((key, value) {
+      var begin = false;
+      data.forEach((key, value) {
         if (begin) {
           values.write(",");
           sql.write(",");
@@ -109,50 +142,101 @@ class DBHelper {
         sql.write("$key");
         arguments.add(value);
       });
-      sql.write(") values(${values.toString()})");
-      return await rawUpdate(sql.toString(), arguments) > 0;
+      sql.write(") VALUES(${values.toString()})");
+      return await rawInsert(sql.toString(), arguments) > 0;
+    });
+  }
+
+  /// 修改数据
+  static Future<bool> update(dynamic model) async {
+    return await findTable(model, false, (table, id, data) async {
+      var sql = StringBuffer("UPDATE $table SET ");
+      var arguments = List<dynamic>();
+      var begin = false;
+      sql.write("INSERT INTO $table(");
+      data.forEach((key, value) {
+        if (begin) {
+          sql.write(",");
+        } else {
+          begin = true;
+        }
+        sql.write("$key=?");
+        arguments.add(value);
+      });
+      return await rawInsert(sql.toString(), arguments) > 0;
+    });
+  }
+
+  /// 删除数据
+  static Future<bool> delete(dynamic model) async {
+    return await findTable(model, false, (table, id, data) async {
+      return await rawDelete("DELETE FROM $table WHERE id=?", [id]) > 0;
+    });
+  }
+
+  /// 获取数据
+  static Future<Map<String, dynamic>> get(Type type, String id) async {
+    String table = _types[type];
+    if (table == null) {
+      return null;
     }
-    /// TODO 新增sql生成部分待完成
+    var result = await rawQuery("SELECT * FROM $table WHERE id=?", [id]);
+    if (result.isEmpty) {
+      return null;
+    }
+    return result[0];
+  }
+
+  /// 获取数数据库中制定类型的所有实体
+  static Future<List<T>> getAll<T>(Type type, T formatter(Map<String, dynamic> data)) async {
+    String table = _types[type];
+    if (table == null) {
+      return [];
+    }
+    var result = await rawQuery("SELECT * FROM $table");
+    return result.map<T>(formatter).toList();
+  }
+
+  static Future<List<Map<String, dynamic>>> find(dynamic example) async {
+    return await findTable(example, [], (table, id, data) async {
+      var sql = StringBuffer("SELECT * FROM $table WHERE");
+      var arguments = [];
+      var begin = false;
+      data.forEach((key, value) {
+        if (value == null) {
+          return;
+        }
+        if (begin) {
+          sql.write(" AND");
+        } else {
+          begin = true;
+        }
+        sql.write(" $key=?");
+        arguments.add(value);
+      });
+      return await rawQuery(sql.toString(), arguments);
+    });
   }
 
   /// 打开数据库
   static Future<sqflite.Database> _open() async {
     var dbpath = await databasesPath;
-    var dbfile = File("$dbpath/$db_name");
-    if (!await dbfile.exists()) {
-      await dbfile.create(recursive: true);
-    }
     return await sqflite.openDatabase(
-      dbfile.path,
+      "$dbpath/$db_name",
       version: version,
-      onCreate: _onCreate,
+      onCreate: (db, version) => _onUpgrade(db, 0, version),
       onUpgrade: _onUpgrade,
     );
   }
 
-  /// 创建数据库时调用
-  static void _onCreate(sqflite.Database db, int version) async {
-    var result = await _load();
-    result["init"].forEach((sql) {
-      print("===> execute sql:\r\n$sql");
-      db.execute(sql);
-    });
-    for (var i = 1; i <= version; ++i) {
-      result["version $i"].forEach((sql) {
-        print("===> execute sql:\r\n$sql");
-        db.execute(sql);
-      });
-    }
-  }
-
   /// 更新数据库时调用
-  static void _onUpgrade(sqflite.Database db, int oldVersion, int newVersion) async {
-    var result = await _load();
+  static Future<void> _onUpgrade(sqflite.Database db, int oldVersion, int newVersion) async {
+    var script = await _load();
     for (var i = oldVersion + 1; i <= newVersion; ++i) {
-      result["version $i"].forEach((sql) {
-        print("===> execute sql: $sql");
-        db.execute(sql);
-      });
+      for (var sql in script["version $i"]) {
+        print("===> execute sql:\r\n$sql");
+        await db.execute(sql);
+      }
     }
   }
 

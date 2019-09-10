@@ -1,4 +1,4 @@
-==== init ====
+==== version 1 ====
 create table book (
     id text primary key,
     name text,
@@ -7,4 +7,11 @@ create table book (
     chapter_number int,
     paragraph_number int
 )
-----
+==== version 2 ====
+create table chapter (
+    id text primary key,
+    number int,
+    title text,
+    uri text,
+    book_id String
+)
