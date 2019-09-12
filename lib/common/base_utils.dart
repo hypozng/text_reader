@@ -2,7 +2,52 @@ import 'package:flutter/material.dart';
 import 'package:annotation_route/route.dart';
 import 'package:dio/dio.dart';
 import 'package:uuid/uuid.dart';
+import 'package:toast/toast.dart';
+
 import 'package:text_reader/common.dart';
+
+/// 跳转到指定页面
+Future<T> toPage<T>(
+  BuildContext context,
+  String url, {
+    Map<String, dynamic> routerParams,
+    Map<String, dynamic> params
+  }) {
+  var option = ARouteOption(url, routerParams);
+  return Navigator.push<T>(context, MaterialPageRoute<T>(
+    builder: (context) => ARouter.findPage(option, params)
+  ));
+}
+
+/// 打开新页面，替换当前页面
+Future<T> replacePage<T extends Object, TO extends Object>(
+  BuildContext context,
+  String url, {
+    Map<String, dynamic> routerParams,
+    Map<String, dynamic> params
+  }
+) {
+  var option = ARouteOption(url, routerParams);
+  return Navigator.pushReplacement<T, TO>(context, MaterialPageRoute<T>(
+    builder: (context) => ARouter.findPage(option, params)
+  ));
+}
+
+/// 生成UUID
+String uuid() => Uuid().v1().replaceAll("-", "");
+
+Dio dio = Dio();
+
+void showToast(BuildContext context, [
+  String message,
+  int duration = 1,
+  int gravity = 0
+]) {
+  Toast.show(message, context,
+    duration: duration,
+    gravity: gravity
+  );
+}
 
 List<String> _unit1 = const ["", "十", "百", "千"];
 List<String> _unit2 = const ["", "万", "亿"];
@@ -62,35 +107,3 @@ String num2zh(int number) {
   }
   return text.toString();
 }
-
-/// 跳转到指定页面
-Future<T> toPage<T>(
-  BuildContext context,
-  String url, {
-    Map<String, dynamic> routerParams,
-    Map<String, dynamic> params
-  }) {
-  var option = ARouteOption(url, routerParams);
-  return Navigator.push<T>(context, MaterialPageRoute<T>(
-    builder: (context) => ARouter.findPage(option, params)
-  ));
-}
-
-/// 打开新页面，替换当前页面
-Future<T> replacePage<T extends Object, TO extends Object>(
-  BuildContext context,
-  String url, {
-    Map<String, dynamic> routerParams,
-    Map<String, dynamic> params
-  }
-) {
-  var option = ARouteOption(url, routerParams);
-  return Navigator.pushReplacement<T, TO>(context, MaterialPageRoute<T>(
-    builder: (context) => ARouter.findPage(option, params)
-  ));
-}
-
-/// 生成UUID
-String uuid() => Uuid().v1().replaceAll("-", "");
-
-Dio dio = Dio();

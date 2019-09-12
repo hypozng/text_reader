@@ -12,4 +12,7 @@ class ARouterConfig {
 
   /// 添加书籍
   static const String add_book = "/addBook";
+
+  /// 目录页面
+  static const String catelog = "/catelog";
 }

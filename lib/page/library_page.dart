@@ -19,6 +19,8 @@ class _LibraryPageState extends State<LibraryPage> {
 
   List<Book> books;
 
+  Map<Book, Chapter> readingChapters = Map<Book, Chapter>();
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -43,19 +45,36 @@ class _LibraryPageState extends State<LibraryPage> {
   }
 
   Widget _renderItem(BuildContext context, int index, Book book){
-    return ListTile(
-      title: Text(book.name),
-      subtitle: book.description == null ? null : Text(book.description),
-      onTap: () {
-        toPage(context, ARouterConfig.read, params: {"book": book});
-      }
-    );
+    return Dismissible(
+      key: Key(book.name),
+      background: Container(
+        color: Colors.red
+      ),
+      child: ListTile(
+        title: Text(book.name),
+        // subtitle: book.description == null ? null : Text(book.description),
+        subtitle: readingChapters[book] == null
+          ? null
+          : Text("已看到第${readingChapters[book].number}章 ${readingChapters[book].title}"),
+        onTap: () {
+          toPage(context, ARouterConfig.read, params: {"book": book});
+        }
+      )
+    ) ;
   }
 
   /// 加载本地收藏的图书列表
   Future<void> _refresh() async {
     books = await DBHelper.getAll(Book, (data) => Book.fromJson(data));
+    readingChapters.clear();
+    for (var book in books) {
+      readingChapters[book] = (await DBHelper.find(Chapter(
+        bookId: book.id,
+        number: book.chapterNumber
+      ), (data) => Chapter.fromJson(data)))[0];
+    }
     setState(() => null);
+
     // return Future.microtask(() {
     //   books = [
     //     Book(

@@ -34,52 +34,107 @@ class _ReadPageState extends State<ReadPage> {
 
   Book get book => widget?.params["book"];
 
-  var chapter = Chapter();
+  Chapter chapter;
 
   int playIndex = 0;
 
   bool playing = false;
 
+  bool loading = false;
+
   ScrollController controller = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _refresh();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.params["book"]?.name ?? "电子书")
+        title: Text(widget.params["book"]?.name ?? "电子书"),
+        actions: <Widget> [
+          IconButton(
+            icon: Icon(Icons.menu),
+            onPressed: () {
+              toPage(context, ARouterConfig.catelog, params: {"book": book})
+                .then((_) => _refresh())
+                .then((_) => _play(start: true));
+            }
+          )
+        ]
       ),
-      body: Container(
-        child: MyListView<String>(
-          data: chapter?.paragraphs,
-          itemBuilder: _renderItem,
-          onRefresh: _refresh,
-          controller: controller
-        )
-      ),
-      floatingActionButton: FloatingActionButton(
-        child: Icon(playing ? Icons.stop : Icons.play_arrow),
-        backgroundColor: Colors.black12,
-        onPressed: () {
-          if (playing) {
-            _stop();
-          } else {
-            --playIndex;
-            _play();
-          }
-        }
-      ),
+      body: Stack(
+        children: <Widget> [
+          Container(
+            child: Column(
+              children: <Widget> [
+                _chapterBar(),
+                Expanded(
+                  child: MyListView<String>(
+                    data: chapter?.paragraphs,
+                    itemBuilder: _renderItem,
+                    // onRefresh: _refresh,
+                    controller: controller
+                  )
+                )
+              ]..removeWhere((e) => e == null)
+            )
+          ),
+          loading ? Container(
+            width: double.infinity,
+            height: double.infinity,
+            color: Colors.black54,
+            alignment: Alignment.center,
+            child: CircularProgressIndicator()
+          ) : null
+        ]..removeWhere((e) => e == null)
+      )
     );
   }
 
   @override
-  void dispose() {
-    _stop();
-    super.dispose();
+  void deactivate() {
+    super.deactivate();
+    playing = false;
+    TtsHelper.stop();
+  }
+
+  /// 章节
+  Widget _chapterBar() {
+    if (chapter == null) {
+      return null;
+    }
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [BoxShadow(blurRadius: 3)]
+      ),
+      child: Row(
+        children: <Widget> [
+          Expanded(
+            child: ListTile(
+              title: Text("第${chapter.number}章 ${chapter.title}")
+            )
+          ),
+          IconButton(
+            icon: Icon(Icons.refresh),
+            onPressed: _refresh
+          ),
+          IconButton(
+            icon: Icon(playing ? Icons.stop : Icons.play_arrow),
+            onPressed: playing ? _stop : _play
+          )
+        ]
+      )
+    );
   }
 
   Widget _renderItem(BuildContext context, int index, String paragraph) {
     return Container(
-      color: playIndex == index ? Colors.amber : null,
+      color: playIndex == index ? ThemeData.light().textSelectionColor : null,
       child: ListTile(
         title: Text(
           paragraph,
@@ -87,44 +142,67 @@ class _ReadPageState extends State<ReadPage> {
             fontSize: 18,
           )
         ),
-        onTap: () {
-          playIndex = index - 1;
-          _play();
-        },
+        onTap: () => _play(index: index)
       )
     );
   }
 
   /// 开始播放语音
-  void _play() {
-    playing = true;
-    ++playIndex;
-    if (playIndex >= chapter.paragraphs.length) {
-      _stop();
+  void _play({bool start = false, int index}) {
+    if (chapter == null) {
       return;
     }
-    // controller.jumpTo(controller.);
+    if (index != null) {
+      playIndex = index;
+    }
+    playing = true;
+    if (start) {
+      playIndex = 0;
+      controller.animateTo(0,
+        duration: Duration(milliseconds: 500),
+        curve: Curves.easeInBack
+      );
+    }
     setState(() {});
-    // controller.attach(ScrollPosition())
-    // print(controller.position);
-    // controller.position.moveTo(playIndex.toDouble());
+    
     var paragraph = chapter.paragraphs[playIndex];
     TtsHelper.speak(paragraph).then((_) {
-      if (playing) {
-        _play();
+      if (!playing) {
+        return;
       }
+      ++playIndex;
+      if (playIndex >= chapter.paragraphs.length) {
+        ++book.chapterNumber;
+        _refresh().then((_) => _play(start: true));
+        return;
+      }
+      _play();
     });
   }
 
   /// 停止播放语音
-  void _stop() {
-    setState(() => playing = false);
-    TtsHelper.stop();
+  Future<void> _stop() async {
+    if (mounted) {
+      setState(() => playing = false);
+    }
+    await TtsHelper.stop();
   }
 
   /// 加载小说资源
   Future<void> _refresh() async {
-    var result = await dio.get(book.url);
+    setState(() => loading = true);
+    var chapters = await DBHelper.find(Chapter(
+      bookId: book.id,
+      number: book.chapterNumber
+    ), (data) => Chapter.fromJson(data));
+    if (chapters.isEmpty) {
+      return;
+    }
+    chapter = chapters[0];
+    var url = "${book.url}${chapter.uri}";
+    print("===> $book  第${chapter.number}章 ${chapter.title}");
+    print("===> $url");
+    var result = await dio.get(url);
     String html = result.data;
     var start = html.indexOf(_pattern);
     if (start != null) {
@@ -139,8 +217,9 @@ class _ReadPageState extends State<ReadPage> {
     _replaces.forEach((r, p) {
       text = text.replaceAll(r, p);
     });
-    List<String> list = text.split("<br/>");
-    list.removeWhere((s) => s == null || s.trim().isEmpty);
-    setState(() => chapter.paragraphs = list);
+    chapter.paragraphs = text.split("<br/>")
+      ..removeWhere((s) => s == null || s.trim().isEmpty || s.contains(chapter.title));
+    setState(() => loading = false);
+    DBHelper.save(book);
   }
 }

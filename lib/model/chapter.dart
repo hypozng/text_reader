@@ -7,10 +7,6 @@ class Chapter {
   @JsonKey(name: 'id')
   String id;
 
-  /// 图书ID
-  @JsonKey(name: 'book_id')
-  String bookId;
-
   /// 章节号
   @JsonKey(name: 'number')
   int number;
@@ -21,6 +17,10 @@ class Chapter {
 
   @JsonKey(name: 'uri')
   String uri;
+  
+  /// 图书ID
+  @JsonKey(name: 'book_id')
+  String bookId;
 
   /// 段落
   @JsonKey(ignore: true)
@@ -31,9 +31,11 @@ class Chapter {
   Map<String, dynamic> toJson() => _$ChapterToJson(this);
 
   Chapter({
+    this.id,
+    this.number,
     this.title,
-    this.number = 1,
     this.uri,
+    this.bookId,
     List<String> paragraphs
   }) {
     this.paragraphs = paragraphs;
@@ -48,9 +50,7 @@ class Chapter {
     if (paragraphs == null || paragraphs.isEmpty) {
       return;
     }
-    var list = <String>[];
-    list.addAll(paragraphs);
-    list.forEach((p) => p = p?.trim() ?? "");
+    var list = paragraphs.map((p) => p?.trim() ?? "").toList();
     list.removeWhere((p) => p?.isNotEmpty != true);
     _paragraphs.addAll(list);
   }

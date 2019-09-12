@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:sqflite/sqflite.dart' as sqflite;
 import 'package:text_reader/model.dart';
@@ -46,17 +45,17 @@ class DBHelper {
   /// 执行sql查询语句
   static Future<List<Map<String, dynamic>>> rawQuery(String sql, [List<dynamic> arguments]) async {
     var db = await database;
-    print("===> execute sql: $sql");
+    print("===> query sql: $sql");
     print("===> arguments: $arguments");
     var result = await db.rawQuery(sql, arguments);
-    print("===> result: $result");
+    print("===> result rows: ${result.length}");
     return result;
   }
 
   /// 执行sql新增语句
   static Future<int> rawInsert(String sql, [List<dynamic> arguments]) async {
     var db = await database;
-    print("===> execute sql: $sql");
+    print("===> insert sql: $sql");
     print("===> arguments: $arguments");
     var result = await db.rawInsert(sql, arguments);
     print("===> result: $result");
@@ -66,7 +65,7 @@ class DBHelper {
   /// 执行sql删除语句
   static Future<int> rawDelete(String sql, [List<dynamic> arguments]) async {
     var db = await database;
-    print("===> execute sql: $sql");
+    print("===> delete sql: $sql");
     print("===> arguments: $arguments");
     var result = await db.rawDelete(sql, arguments);
     print("===> result: $result");
@@ -76,7 +75,7 @@ class DBHelper {
   /// 执行sql修改语句
   static Future<int> rawUpdate(String sql, [List<dynamic> arguments]) async {
     var db = await database;
-    print("===> execute sql: $sql");
+    print("===> update sql: $sql");
     print("===> arguments: $arguments");
     var result = await db.rawUpdate(sql, arguments);
     print("==> result: $result");
@@ -153,8 +152,10 @@ class DBHelper {
       var sql = StringBuffer("UPDATE $table SET ");
       var arguments = List<dynamic>();
       var begin = false;
-      sql.write("INSERT INTO $table(");
       data.forEach((key, value) {
+        if (key == "id") {
+          return;
+        }
         if (begin) {
           sql.write(",");
         } else {
@@ -163,7 +164,9 @@ class DBHelper {
         sql.write("$key=?");
         arguments.add(value);
       });
-      return await rawInsert(sql.toString(), arguments) > 0;
+      sql.write(" WHERE id=?");
+      arguments.add(data["id"]);
+      return await rawUpdate(sql.toString(), arguments) > 0;
     });
   }
 
@@ -197,7 +200,7 @@ class DBHelper {
     return result.map<T>(formatter).toList();
   }
 
-  static Future<List<Map<String, dynamic>>> find(dynamic example) async {
+  static Future<List<T>> find<T>(dynamic example, T formatter(Map<String, dynamic> data)) async {
     return await findTable(example, [], (table, id, data) async {
       var sql = StringBuffer("SELECT * FROM $table WHERE");
       var arguments = [];
@@ -214,7 +217,8 @@ class DBHelper {
         sql.write(" $key=?");
         arguments.add(value);
       });
-      return await rawQuery(sql.toString(), arguments);
+      var result = await rawQuery(sql.toString(), arguments);
+      return result.map<T>((row) => formatter(row)).toList();
     });
   }
 
