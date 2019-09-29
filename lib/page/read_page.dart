@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:dio/dio.dart';
 import 'package:annotation_route/route.dart';
 
 import 'package:text_reader/common.dart';
@@ -42,7 +41,11 @@ class _ReadPageState extends State<ReadPage> {
 
   bool loading = false;
 
+  GlobalKey key = GlobalKey();
+
   ScrollController controller = ScrollController();
+
+  double scrollOffset = 0;
 
   @override
   void initState() {
@@ -58,10 +61,13 @@ class _ReadPageState extends State<ReadPage> {
         actions: <Widget> [
           IconButton(
             icon: Icon(Icons.menu),
-            onPressed: () {
-              toPage(context, ARouterConfig.catelog, params: {"book": book})
-                .then((_) => _refresh())
-                .then((_) => _play(start: true));
+            onPressed: () async {
+              var result = await toPage(context, ARouterConfig.catelog, params: {"book": book});
+              if (result == null) {
+                return;
+              }
+              await _refresh();
+              _play(0);
             }
           )
         ]
@@ -134,6 +140,7 @@ class _ReadPageState extends State<ReadPage> {
 
   Widget _renderItem(BuildContext context, int index, String paragraph) {
     return Container(
+      key: index == playIndex ? key : null,
       color: playIndex == index ? ThemeData.light().textSelectionColor : null,
       child: ListTile(
         title: Text(
@@ -142,42 +149,42 @@ class _ReadPageState extends State<ReadPage> {
             fontSize: 18,
           )
         ),
-        onTap: () => _play(index: index)
+        onTap: () => _play(index)
       )
     );
   }
 
   /// 开始播放语音
-  void _play({bool start = false, int index}) {
+  void _play([int index]) {
     if (chapter == null) {
       return;
     }
-    if (index != null) {
-      playIndex = index;
-    }
+    playIndex = index ?? 0;
     playing = true;
-    if (start) {
-      playIndex = 0;
-      controller.animateTo(0,
-        duration: Duration(milliseconds: 500),
-        curve: Curves.easeInBack
-      );
-    }
+    scrollOffset = playIndex > 0
+      ? scrollOffset + key.currentContext?.size?.height ?? 0 : 0;
+    controller.animateTo(
+      scrollOffset,
+      duration: Duration(milliseconds: 500),
+      curve: Curves.easeInOut
+    );
     setState(() {});
-    
-    var paragraph = chapter.paragraphs[playIndex];
-    TtsHelper.speak(paragraph).then((_) {
+    _speak(chapter.paragraphs[playIndex]);
+  }
+
+  void _speak(String text) async {
+    await TtsHelper.speak(text);
       if (!playing) {
         return;
       }
       ++playIndex;
       if (playIndex >= chapter.paragraphs.length) {
         ++book.chapterNumber;
-        _refresh().then((_) => _play(start: true));
+        await _refresh();
+        _play(0);
         return;
       }
       _play();
-    });
   }
 
   /// 停止播放语音

@@ -49,7 +49,7 @@ class _AddBookPageState extends BasicState<AddBookPage> {
               ),
               SizedBox(height: 20),
               RaisedButton(
-                child: Text("添加"),
+                child: Text("保存"),
                 onPressed: _save
               )
             ]
@@ -57,7 +57,7 @@ class _AddBookPageState extends BasicState<AddBookPage> {
         )
       ),
       floatingActionButton: FloatingActionButton(
-        child: Icon(Icons.open_in_browser),
+        child: Icon(Icons.folder_open),
         onPressed: _openConfigFile
       )
     );

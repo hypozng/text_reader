@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:annotation_route/route.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 
 import 'package:text_reader/model.dart';
 import 'package:text_reader/page.dart';
@@ -45,20 +46,32 @@ class _LibraryPageState extends State<LibraryPage> {
   }
 
   Widget _renderItem(BuildContext context, int index, Book book){
-    return Dismissible(
-      key: Key(book.name),
-      background: Container(
-        color: Colors.red
-      ),
-      child: ListTile(
-        title: Text(book.name),
-        // subtitle: book.description == null ? null : Text(book.description),
-        subtitle: readingChapters[book] == null
-          ? null
-          : Text("已看到第${readingChapters[book].number}章 ${readingChapters[book].title}"),
-        onTap: () {
-          toPage(context, ARouterConfig.read, params: {"book": book});
-        }
+    return Slidable(
+      actionPane: SlidableBehindActionPane(),
+      actionExtentRatio: 0.15,
+      secondaryActions: <Widget> [
+        IconSlideAction(
+          color: Colors.blueAccent,
+          icon: Icons.edit,
+          onTap: () => _edit(book)
+        ),
+        IconSlideAction(
+          color: Colors.redAccent,
+          icon: Icons.delete,
+          onTap: () => _remove(book)
+        )
+      ],
+      child: Container(
+        color: Colors.white,
+        child: ListTile(
+          title: Text(book.name),
+          subtitle: readingChapters[book] == null
+            ? null
+            : Text("已看到第${readingChapters[book].number}章 ${readingChapters[book].title}"),
+          onTap: () {
+            toPage(context, ARouterConfig.read, params: {"book": book}).then((_) => _refresh());
+          }
+        )
       )
     ) ;
   }
@@ -89,5 +102,15 @@ class _LibraryPageState extends State<LibraryPage> {
     //   ];
     //   setState(() {});
     // });
+  }
+
+  /// 编辑书籍
+  void _edit(Book book) {
+
+  }
+
+  /// 删除书籍
+  void _remove(Book book) {
+
   }
 }
